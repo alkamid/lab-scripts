@@ -20,7 +20,7 @@ class matplotLIV():
         
         filenames = [("%s_%sK.txt" % (self.BaseFilename, str(temp)), temp) for temp in self.temperatures]
         self.rawData = [(np.loadtxt(fname), temp) for fname, temp in filenames]
-        self.colors = colors = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#e6ab02', '#a6761d', '#666666']
+        self.colors = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#e6ab02', '#a6761d', '#666666']
 
         self.maxValueRow = (0,0,0)
 
@@ -43,14 +43,15 @@ class matplotLIV():
         ax2.set_ylabel("light intensity / arb. u.")
         ax3.set_xlabel(r'current density / $\mathregular{Acm^{-2}}$')
         ax3.xaxis.set_label_position('bottom')
-
+        
+        lns = []
         for i, (datafile, label) in enumerate(self.rawData):
             self.checkMaxValues(datafile)
-            l1 = ax1.plot( datafile[:,0], datafile[:,1], color=self.colors[i], label='%sK' % str(label))
-            l2 = ax2.plot( datafile[:,0], datafile[:,2], color=self.colors[i], label='%sK' % str(label), linewidth=2)
+            ax1.plot( datafile[:,0], datafile[:,1], color=self.colors[i], label='%sK' % str(label))
+            lns += ax2.plot( datafile[:,0], datafile[:,2], color=self.colors[i], label='%sK' % str(label), linewidth=2)
 
         # Define which lines to put in the legend. If you want l1 too, then use lns = l1+l2
-        lns = l2
+        
         labs = [l.get_label() for l in lns]
 
         ax1.margins(x=0)
@@ -65,12 +66,11 @@ class matplotLIV():
             ax2.set_ylim(top=self.ylim)
 
         ax3.set_xlim(start/self.area, end/self.area)
-        leg = ax3.legend(lns,labs,loc='upper left')
         
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         self.fig.subplots_adjust(top=0.86)
 
-        loc = plticker.MultipleLocator(base=20.0) # this locator puts ticks at regular intervals
+        loc = plticker.MultipleLocator(base=40.0) # this locator puts ticks at regular intervals
         ax3.xaxis.set_major_locator(loc)
 
     def checkMaxValues(self, data):
