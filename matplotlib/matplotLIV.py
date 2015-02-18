@@ -70,8 +70,13 @@ class matplotLIV():
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         self.fig.subplots_adjust(top=0.86)
 
-        loc = plticker.MultipleLocator(base=40.0) # this locator puts ticks at regular intervals
-        ax3.xaxis.set_major_locator(loc)
+        self.leg = ax3.legend(lns,labs,loc='upper left')
+
+    def changeTicks(self, base):
+        '''if the ticks on the bottom X axis (current density) are too sparse/dense, you can set the distance manually'''
+
+        loc = plticker.MultipleLocator(base) # this locator puts ticks at regular intervals
+        self.ax3.xaxis.set_major_locator(loc)
 
     def checkMaxValues(self, data):
         maxInd = data.argmax(axis=0)[2]
