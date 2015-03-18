@@ -89,6 +89,14 @@ class matplotLIV():
         y2Fraction = y1Fraction - 0.02
         ax2.set_ylim(top=self.maxValueRow[2]/y2Fraction)
 
+    def set_x_limits(self, left=None, right=None):
+        if left:
+            self.ax1.set_xlim(left=left)
+            self.ax3.set_xlim(left=left/self.area)
+        if right:
+            self.ax1.set_xlim(right=right)
+            self.ax3.set_xlim(right=right/self.area)
+
     def show(self):
         plt.savefig(self.BaseFilename + '.pdf')        
         plt.show()
