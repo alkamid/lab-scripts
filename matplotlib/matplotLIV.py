@@ -6,9 +6,14 @@ import matplotlib.ticker as plticker
 
 class matplotLIV():
 
-    def __init__(self, BaseFilename, temperatures, length=None, width=None, area=None, title = '', ylim=None):
+    def __init__(self, BaseFilename, temperatures, fig=None, length=None,
+                 width=None, area=None, title = None, ylim=None,
+                 sensitivity=None, dutycycle=None, detector='golay-tydex'):
+
         self.BaseFilename = BaseFilename
         self.temperatures = temperatures
+        self.fig = fig
+
         if length and width:
             self.length = length
             self.width = width
@@ -24,9 +29,29 @@ class matplotLIV():
 
         self.maxValueRow = (0,0,0)
 
+        # sensitivity of detectors - measured by Dave Jessop, given in
+        # mv/uW
+        
+        if sensitivity:
+            self.sens = sensitivity
+            
+            sens_table = {'golay-tydex': 9.37,
+                          'golay-cathodeon': 16.65,
+                          'pyro': 6.25}
+
+            # (1/10000) - because the number on the computer scales with sensitivity
+            # (100/dutycycle) - the given power is extrapolated at CW
+            # (/0.45) - the factor from square wave modulation
+            power_scaling = 1/10000/sens_table[detector]*(100/dutycycle)/0.45
+
+            for datafile, temp in self.rawData:
+                datafile[:,2] *= power_scaling
+        
     def plot(self):
         
-        self.fig = plt.figure()
+        if self.fig == None:
+            self.fig = plt.figure()
+
         self.ax1 = self.fig.add_subplot(111)
         ax1 = self.ax1
         ax1.tick_params(bottom='off')
@@ -40,15 +65,20 @@ class matplotLIV():
         ax1.set_xlabel("current / A")
         ax1.xaxis.set_label_position('top')
         ax1.set_ylabel("voltage / V")
-        ax2.set_ylabel("light intensity / arb. u.")
         ax3.set_xlabel(r'current density / $\mathregular{Acm^{-2}}$')
         ax3.xaxis.set_label_position('bottom')
+
+        if self.sens:
+            ax2.set_ylabel(r'light intensity / $\mathregular{\mu W}$')
+        else:
+            ax2.set_ylabel("light intensity / arb. u.")
+
         
         lns = []
         for i, (datafile, label) in enumerate(self.rawData):
             self.checkMaxValues(datafile)
-            ax1.plot( datafile[:,0], datafile[:,1], color=self.colors[i], label='%sK' % str(label))
-            lns += ax2.plot( datafile[:,0], datafile[:,2], color=self.colors[i], label='%sK' % str(label), linewidth=2)
+            ax1.plot( datafile[:,0], datafile[:,1], color=self.colors[i%len(self.colors)], label='%sK' % str(label))
+            lns += ax2.plot( datafile[:,0], datafile[:,2], color=self.colors[i%len(self.colors)], label='%sK' % str(label), linewidth=2)
 
         # Define which lines to put in the legend. If you want l1 too, then use lns = l1+l2
         
@@ -67,8 +97,9 @@ class matplotLIV():
 
         ax3.set_xlim(start/self.area, end/self.area)
         
-        self.fig.suptitle(self.title, y=0.98, weight='bold')
-        self.fig.subplots_adjust(top=0.86)
+        if (self.title):
+            self.fig.suptitle(self.title, y=0.98, weight='bold')
+            self.fig.subplots_adjust(top=0.86)
 
         self.leg = ax3.legend(lns,labs,loc='upper left')
 
@@ -98,5 +129,6 @@ class matplotLIV():
             self.ax3.set_xlim(right=right/self.area)
 
     def show(self):
-        plt.savefig(self.BaseFilename + '.pdf')        
+        plt.savefig(self.BaseFilename + '.pdf')
+        plt.savefig(self.BaseFilename + '.png', dpi=150)
         plt.show()
