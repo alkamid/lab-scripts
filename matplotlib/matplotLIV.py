@@ -40,9 +40,10 @@ class matplotLIV():
                           'pyro': 6.25}
 
             # (1/10000) - because the number on the computer scales with sensitivity
+            # (1/sqrt(2)) - RMS
             # (100/dutycycle) - the given power is extrapolated at CW
             # (/0.45) - the factor from square wave modulation
-            power_scaling = 1/10000/sens_table[detector]*(100/dutycycle)/0.45
+            power_scaling = 1/10000*sensitivity*np.sqrt(2)/sens_table[detector]*(100/dutycycle)/0.45
 
             for datafile, temp in self.rawData:
                 datafile[:,2] *= power_scaling
