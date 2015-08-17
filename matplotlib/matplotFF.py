@@ -6,9 +6,10 @@ import scipy.interpolate
 
 class matplotFF():
 
-    def __init__(self, BaseFilename, title = '', xLen=0, zLen=0):
+    def __init__(self, fig, BaseFilename, title = '', xLen=0, zLen=0):
         self.BaseFilename = BaseFilename
         self.title = title
+        self.fig = fig
         
         self.rawData = np.loadtxt(self.BaseFilename)
         self.zRaw = self.rawData[:,0]
@@ -27,9 +28,9 @@ class matplotFF():
             self.xLen = xLen
             self.zLen = zLen
         
-        self.x = self.xRaw.reshape((self.zLen,self.xLen))
-        self.z = self.zRaw.reshape((self.zLen,self.xLen))
-        self.signal = self.sigRaw.reshape((self.zLen,self.xLen))
+        self.x = self.xRaw.reshape((self.xLen,self.zLen))
+        self.z = self.zRaw.reshape((self.xLen,self.zLen))
+        self.signal = self.sigRaw.reshape((self.xLen,self.zLen))
 
     def plotLine(self):
         '''plots the cross section of far-field (averaged all points at a set z position)'''
@@ -37,65 +38,77 @@ class matplotFF():
         av = [np.mean(row) for row in self.signal]
         zLine = [z[0] for z in self.z]
 
-        self.fig = plt.figure()
+        #self.fig = plt.figure()
 
         plt.plot(av, zLine, color='#1b9e77')
 
-    def plotLineAngle(self, distance, phaseShift=0):
-        '''plots the cross section of far-field (averaged all points at a set z position)
-        distance: distance of the detector in mm (for conversion into theta)
-        phaseShift: angle in radians. Sometimes we want to shift the farfield by pi to get the plot on the other side of the polar coordinate system'''
+    def plotLineAngle(self, distance=0, phaseShift=0, mean=True, angleData=False, color='#1b9e77', label=''):
+        """plots the cross section of far-field (averaged all points at a set z position)
 
-        av = [np.mean(row) for row in self.signal]
-        theta = [np.arctan(z[0]/distance)+phaseShift for z in self.z]
+        Args:
+            distance: distance of the detector in mm (for conversion into theta)
+            phaseShift: angle in radians. Sometimes we want to shift the farfield by pi to get the plot on the other side of the polar coordinate system
+        """
 
+        if mean:
+            intens = [np.mean(row) for row in self.signal]
+        else:
+            intens = self.signal[-5]
+            intens = np.mean(self.signal,axis=0)
+        
+            
+        if angleData:
+            theta = self.x[0]*np.pi/180
+        else:
+            theta = [np.arctan(z[0]/distance)+phaseShift for z in self.z]
+            
         # normalize values to [0,1]
-        av-= np.min(av)
-        av/= np.max(av)
+        intens-= np.min(intens)
+        intens/= np.max(intens)
 
-
-        self.fig = plt.figure()
+        #self.fig = plt.figure()
         self.ax1 = self.fig.add_subplot(111, polar=True)
 
-        self.ax1.plot(theta, av, color='#1b9e77', linewidth=2.0, label='experiment')
+        self.ax1.plot(theta, intens, color=color, linewidth=2.0, label=label)
         #self.ax1.set_theta_offset(-np.pi/2)
         self.ax1.get_yaxis().set_visible(False)
         
     def plot(self):
  
         self.fig = plt.figure()
-        ax1 = self.fig.add_subplot(111)
-        ax1.margins(x=0)
-        ax1.set_xlim(self.x.min(), self.x.max())
+        self.ax1 = self.fig.add_subplot(111)
+        self.ax1.margins(x=0)
+        self.ax1.set_xlim(self.x.min(), self.x.max())
         
         plt.pcolormesh(self.x,self.z,self.signal, cmap='jet')
 
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         self.fig.subplots_adjust(top=0.86)
-        ax1.tick_params(labelright=True, labeltop=True)
+        self.ax1.tick_params(labelright=True, labeltop=True)
         
         return self.fig
 
-    def plotInterpolate(self, xPoints, zPoints):
+    def plotInterpolate(self, xPoints, zPoints, rotate=False, origin='lower'):
 
-        self.fig = plt.figure()
-        ax1 = self.fig.add_subplot(111)
-        ax1.set_xlabel("X / mm")
-        ax1.set_ylabel("Z / mm")
+        #self.fig = plt.figure()
+        self.ax1 = self.fig.add_subplot(111)
+        self.ax1.set_xlabel("X / mm")
+        self.ax1.set_ylabel("Z / mm")
 
         xi, zi = np.linspace(self.x.min(), self.x.max(), xPoints), np.linspace(self.z.min(), self.z.max(), zPoints)
         xi, zi = np.meshgrid(xi, zi)
 
         rbf = scipy.interpolate.Rbf(self.x, self.z, self.signal, function='linear')
         sigi = rbf(xi, zi)
-
-        plt.imshow(sigi, extent=[self.x.min(), self.x.max(), self.z.min(), self.z.max()], origin='lower', cmap='jet', aspect='auto')
+        if rotate:
+            sigi = np.rot90(sigi)
+        plt.imshow(sigi, extent=[self.x.min(), self.x.max(), self.z.min(), self.z.max()], origin=origin, cmap='coolwarm', aspect='auto')
 
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         self.fig.subplots_adjust(top=0.86)
-        ax1.tick_params(labelright=True, labeltop=True)
+        self.ax1.tick_params(labelright=True, labeltop=True)
 
-        return self.fig
+        #return self.fig
 
     def show(self):
         plt.savefig(self.BaseFilename + '.pdf')
