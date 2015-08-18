@@ -75,7 +75,6 @@ class matplotFF():
         
     def plot(self):
  
-        self.fig = plt.figure()
         self.ax1 = self.fig.add_subplot(111)
         self.ax1.margins(x=0)
         self.ax1.set_xlim(self.x.min(), self.x.max())
@@ -90,7 +89,6 @@ class matplotFF():
 
     def plotInterpolate(self, xPoints, zPoints, rotate=False, origin='lower'):
 
-        #self.fig = plt.figure()
         self.ax1 = self.fig.add_subplot(111)
         self.ax1.set_xlabel("X / mm")
         self.ax1.set_ylabel("Z / mm")
