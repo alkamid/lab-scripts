@@ -79,7 +79,7 @@ class matplotFF():
         self.ax1.margins(x=0)
         self.ax1.set_xlim(self.x.min(), self.x.max())
         
-        plt.pcolormesh(self.x,self.z,self.signal, cmap='jet')
+        plt.pcolormesh(self.x,self.z,self.signal, cmap='coolwarm')
 
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         self.fig.subplots_adjust(top=0.86)
