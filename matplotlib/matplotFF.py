@@ -112,4 +112,5 @@ class matplotFF():
 
     def show(self):
         plt.savefig(self.BaseFilename + '.pdf')
+        plt.savefig(self.BaseFilename + '.png')
         plt.show()
