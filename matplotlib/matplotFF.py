@@ -73,13 +73,16 @@ class matplotFF():
         #self.ax1.set_theta_offset(-np.pi/2)
         self.ax1.get_yaxis().set_visible(False)
         
-    def plot(self):
+    def plot(self, rotate=False):
  
         self.ax1 = self.fig.add_subplot(111)
         self.ax1.margins(x=0)
         self.ax1.set_xlim(self.x.min(), self.x.max())
+
+        if rotate:
+            self.signal = np.rot90(self.signal, 2)
         
-        plt.pcolormesh(self.x,self.z,self.signal, cmap='coolwarm')
+        plt.pcolormesh(self.x, self.z, self.signal, cmap='coolwarm')
 
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         self.fig.subplots_adjust(top=0.86)
