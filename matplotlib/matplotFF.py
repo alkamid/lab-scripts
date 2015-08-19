@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
+from matplotlib.colors import Normalize
 import scipy.interpolate
 
 class matplotFF():
@@ -31,6 +32,10 @@ class matplotFF():
         self.x = self.xRaw.reshape((self.xLen,self.zLen))
         self.z = self.zRaw.reshape((self.xLen,self.zLen))
         self.signal = self.sigRaw.reshape((self.xLen,self.zLen))
+
+        # normalise the signal to [0, 1]
+        self.signal -= np.min(self.signal)
+        self.signal /= np.max(self.signal)
 
     def plotLine(self):
         '''plots the cross section of far-field (averaged all points at a set z position)'''
@@ -66,7 +71,6 @@ class matplotFF():
         intens-= np.min(intens)
         intens/= np.max(intens)
 
-        #self.fig = plt.figure()
         self.ax1 = self.fig.add_subplot(111, polar=True)
 
         self.ax1.plot(theta, intens, color=color, linewidth=2.0, label=label)
@@ -87,6 +91,9 @@ class matplotFF():
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         self.fig.subplots_adjust(top=0.86)
         self.ax1.tick_params(labelright=True, labeltop=True)
+
+        self.ax1.set_xlabel("X / mm")
+        self.ax1.set_ylabel("Z / mm")
         
         return self.fig
 
