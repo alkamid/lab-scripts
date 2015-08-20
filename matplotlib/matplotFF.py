@@ -37,6 +37,16 @@ class matplotFF():
         self.signal -= np.min(self.signal)
         self.signal /= np.max(self.signal)
 
+    def trim(self, xmin=None, xmax=None, zmin=None, zmax=None):
+        self.x = self.x[zmin:zmax,xmin:xmax]
+        self.z = self.z[zmin:zmax,xmin:xmax]
+        self.signal = self.signal[zmin:zmax,xmin:xmax]
+
+        # normalise the signal to [0, 1]
+        self.signal -= np.min(self.signal)
+        self.signal /= np.max(self.signal)
+
+        
     def plotLine(self):
         '''plots the cross section of far-field (averaged all points at a set z position)'''
 
@@ -86,7 +96,7 @@ class matplotFF():
         if rotate:
             self.signal = np.rot90(self.signal, 2)
         
-        plt.pcolormesh(self.x, self.z, self.signal, cmap='coolwarm')
+        plt.pcolormesh(self.x, self.z, self.signal, cmap='coolwarm', edgecolors='face')
 
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         self.fig.subplots_adjust(top=0.86)
