@@ -33,6 +33,20 @@ class matplotFF():
         self.z = self.zRaw.reshape((self.xLen,self.zLen))
         self.signal = self.sigRaw.reshape((self.xLen,self.zLen))
 
+        # normalise the signal to [0, 1]
+        self.signal -= np.min(self.signal)
+        self.signal /= np.max(self.signal)
+
+    def trim(self, xmin=None, xmax=None, zmin=None, zmax=None):
+        self.x = self.x[zmin:zmax,xmin:xmax]
+        self.z = self.z[zmin:zmax,xmin:xmax]
+        self.signal = self.signal[zmin:zmax,xmin:xmax]
+
+        # normalise the signal to [0, 1]
+        self.signal -= np.min(self.signal)
+        self.signal /= np.max(self.signal)
+
+        
     def plotLine(self):
         '''plots the cross section of far-field (averaged all points at a set z position)'''
 
@@ -74,19 +88,25 @@ class matplotFF():
         #self.ax1.set_theta_offset(-np.pi/2)
         self.ax1.get_yaxis().set_visible(False)
         
-    def plot(self):
+    def plot(self, rotate=False):
  
-        self.fig = plt.figure()
+
         self.ax1 = self.fig.add_subplot(111)
         self.ax1.margins(x=0)
         self.ax1.set_xlim(self.x.min(), self.x.max())
+
+        if rotate:
+            self.signal = np.rot90(self.signal, 2)
         
         viri = viridis.get_viridis()
-        plt.pcolormesh(self.x,self.z,self.signal, cmap=viri)
+        plt.pcolormesh(self.x,self.z,self.signal, cmap=viri, edgecolors='face')
 
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         self.fig.subplots_adjust(top=0.86)
         self.ax1.tick_params(labelright=True, labeltop=True)
+
+        self.ax1.set_xlabel("X / mm")
+        self.ax1.set_ylabel("Z / mm")
         
         return self.fig
 
@@ -114,4 +134,6 @@ class matplotFF():
 
     def show(self):
         plt.savefig(self.BaseFilename + '.pdf')
+        plt.savefig(self.BaseFilename + '.png')
+        plt.savefig(self.BaseFilename + '.svg')
         plt.show()
