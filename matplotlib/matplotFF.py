@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib
 matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize
 import scipy.interpolate
+import viridis
 
 class matplotFF():
 
@@ -81,6 +81,7 @@ class matplotFF():
         intens-= np.min(intens)
         intens/= np.max(intens)
 
+        #self.fig = plt.figure()
         self.ax1 = self.fig.add_subplot(111, polar=True)
 
         self.ax1.plot(theta, intens, color=color, linewidth=2.0, label=label)
@@ -89,26 +90,23 @@ class matplotFF():
         
     def plot(self, rotate=False):
  
+
         self.ax1 = self.fig.add_subplot(111)
         self.ax1.margins(x=0)
         self.ax1.set_xlim(self.x.min(), self.x.max())
-
-        if rotate:
-            self.signal = np.rot90(self.signal, 2)
         
-        plt.pcolormesh(self.x, self.z, self.signal, cmap='coolwarm', edgecolors='face')
+        viri = viridis.get_viridis()
+        plt.pcolormesh(self.x,self.z,self.signal, cmap=viri, edgecolors='face')
 
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         self.fig.subplots_adjust(top=0.86)
         self.ax1.tick_params(labelright=True, labeltop=True)
-
-        self.ax1.set_xlabel("X / mm")
-        self.ax1.set_ylabel("Z / mm")
         
         return self.fig
 
     def plotInterpolate(self, xPoints, zPoints, rotate=False, origin='lower'):
 
+        #self.fig = plt.figure()
         self.ax1 = self.fig.add_subplot(111)
         self.ax1.set_xlabel("X / mm")
         self.ax1.set_ylabel("Z / mm")
@@ -130,6 +128,4 @@ class matplotFF():
 
     def show(self):
         plt.savefig(self.BaseFilename + '.pdf')
-        plt.savefig(self.BaseFilename + '.png')
-        plt.savefig(self.BaseFilename + '.svg')
         plt.show()
