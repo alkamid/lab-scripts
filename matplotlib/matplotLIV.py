@@ -70,7 +70,7 @@ class matplotLIV():
         ax3.xaxis.set_label_position('bottom')
 
         if self.sens:
-            ax2.set_ylabel(r'output power / $\mathregular{\mu W}$')
+            ax2.set_ylabel(r'peak output power / $\mathregular{\mu W}$')
         else:
             ax2.set_ylabel("light intensity / arb. u.")
 
