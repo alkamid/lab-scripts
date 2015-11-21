@@ -69,10 +69,12 @@ class matplotLIV():
         ax3.set_xlabel(r'current density / $\mathregular{Acm^{-2}}$')
         ax3.xaxis.set_label_position('bottom')
 
-        if self.sens:
-            ax2.set_ylabel(r'peak output power / $\mathregular{\mu W}$')
-        else:
+        try: self.sens == None
+        except AttributeError:
             ax2.set_ylabel("light intensity / arb. u.")
+        else:
+            ax2.set_ylabel(r'peak output power / $\mathregular{\mu W}$')
+        
 
         
         lns = []

@@ -118,7 +118,10 @@ class matplotFF():
         sigi = rbf(xi, zi)
         if rotate:
             sigi = np.rot90(sigi)
-        plt.imshow(sigi, extent=[self.x.min(), self.x.max(), self.z.min(), self.z.max()], origin=origin, cmap='coolwarm', aspect='auto')
+
+        viri = viridis.get_viridis()
+
+        plt.imshow(sigi, extent=[self.x.min(), self.x.max(), self.z.min(), self.z.max()], origin=origin, cmap=viri, aspect='auto')
 
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         self.fig.subplots_adjust(top=0.86)
@@ -128,4 +131,5 @@ class matplotFF():
 
     def show(self):
         plt.savefig(self.BaseFilename + '.pdf')
+        plt.savefig(self.BaseFilename + '.png')
         plt.show()
