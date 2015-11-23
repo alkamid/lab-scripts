@@ -6,8 +6,11 @@ import scipy.interpolate
 import viridis
 
 class matplotFF():
-
-    def __init__(self, fig, BaseFilename, title = '', xLen=0, zLen=0):
+    """A class for plotting far-field measurements of lasers. It requires
+    the 'x z signal' format, but supports stitched measurements — the data
+    can be simply added at the end of a file    
+    """
+    def __init__(self, fig, BaseFilename, title = '', xLen=0, zLen=0, stitch=False):
         self.BaseFilename = BaseFilename
         self.title = title
         self.fig = fig
@@ -18,20 +21,46 @@ class matplotFF():
         self.sigRaw = self.rawData[:,2]
         
         # figure out the number of steps for Z and X
+        stage_tolerance = 0.01  # stages don't always move to the same
+                                # place, so numerical positions might differ slightly
         if xLen == 0 and zLen == 0:
-            firstValue = self.zRaw[0]
+            z_unique_vals = [self.zRaw[0]]
+            x_unique_vals = [self.xRaw[0]]
+
+            # count unique values of Z/X values in the data file
+            # (allows for non-rectangular data, i.e. for stiching together
+            # patches)
             for i in range(len(self.zRaw)):
-                if self.zRaw[i] > firstValue:
-                    self.zLen = i
-                    break
-            self.xLen = len(self.zRaw)/self.zLen
+                if sum(abs(z_unique_vals-self.zRaw[i]) > stage_tolerance) == len(z_unique_vals):
+                    z_unique_vals.append(self.zRaw[i])
+            for i in range(len(self.xRaw)):
+                if sum(abs(x_unique_vals-self.xRaw[i]) > stage_tolerance) == len(x_unique_vals):
+                    x_unique_vals.append(self.xRaw[i])
+            
+            self.xLen = len(x_unique_vals)
+            self.zLen = len(z_unique_vals)
         else:
             self.xLen = xLen
             self.zLen = zLen
-        
-        self.x = self.xRaw.reshape((self.xLen,self.zLen))
-        self.z = self.zRaw.reshape((self.xLen,self.zLen))
-        self.signal = self.sigRaw.reshape((self.xLen,self.zLen))
+
+        # fill in zeros if we are plotting a stiched far field
+        if stitch == True:
+            self.x = np.ndarray((self.xLen,self.zLen))
+            self.z = np.ndarray((self.xLen,self.zLen))
+            self.signal = np.zeros((self.xLen,self.zLen))
+            for iz, z in enumerate(sorted(z_unique_vals)):
+                for ix, x in enumerate(sorted(x_unique_vals)):
+                     self.x[ix][iz] = x
+                     self.z[ix][iz] = z
+                     for i in zip(self.xRaw, self.zRaw, self.sigRaw):
+                         if (abs(i[0]-x) < stage_tolerance) and (abs(i[1]-z) < stage_tolerance):
+                             self.signal[ix][iz] = i[2]
+                             break
+
+        else:
+            self.x = self.xRaw.reshape((self.xLen,self.zLen))
+            self.z = self.zRaw.reshape((self.xLen,self.zLen))
+            self.signal = self.sigRaw.reshape((self.xLen,self.zLen))
 
         # normalise the signal to [0, 1]
         self.signal -= np.min(self.signal)
@@ -52,8 +81,6 @@ class matplotFF():
 
         av = [np.mean(row) for row in self.signal]
         zLine = [z[0] for z in self.z]
-
-        #self.fig = plt.figure()
 
         plt.plot(av, zLine, color='#1b9e77')
 
@@ -81,7 +108,6 @@ class matplotFF():
         intens-= np.min(intens)
         intens/= np.max(intens)
 
-        #self.fig = plt.figure()
         self.ax1 = self.fig.add_subplot(111, polar=True)
 
         self.ax1.plot(theta, intens, color=color, linewidth=2.0, label=label)
@@ -106,7 +132,6 @@ class matplotFF():
 
     def plotInterpolate(self, xPoints, zPoints, rotate=False, origin='lower'):
 
-        #self.fig = plt.figure()
         self.ax1 = self.fig.add_subplot(111)
         self.ax1.set_xlabel("X / mm")
         self.ax1.set_ylabel("Z / mm")
@@ -116,6 +141,11 @@ class matplotFF():
 
         rbf = scipy.interpolate.Rbf(self.x, self.z, self.signal, function='linear')
         sigi = rbf(xi, zi)
+
+        # normalise again after interpolation — just so the colorbar
+        # extends from 0 to 1
+        sigi /= np.max(sigi)
+        
         if rotate:
             sigi = np.rot90(sigi)
 
@@ -126,8 +156,6 @@ class matplotFF():
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         self.fig.subplots_adjust(top=0.86)
         self.ax1.tick_params(labelright=True, labeltop=True)
-
-        #return self.fig
 
     def show(self):
         plt.savefig(self.BaseFilename + '.pdf')
