@@ -21,7 +21,7 @@ class matplotFF():
         self.sigRaw = self.rawData[:,2]
         
         # figure out the number of steps for Z and X
-        stage_tolerance = 0.01  # stages don't always move to the same
+        stage_tolerance = 0.05  # stages don't always move to the same
                                 # place, so numerical positions might differ slightly
         if xLen == 0 and zLen == 0:
             z_unique_vals = [self.zRaw[0]]
