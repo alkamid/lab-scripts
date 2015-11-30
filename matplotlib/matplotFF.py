@@ -10,7 +10,7 @@ class matplotFF():
     the 'x z signal' format, but supports stitched measurements — the data
     can be simply added at the end of a file    
     """
-    def __init__(self, fig, BaseFilename, title = '', xLen=0, zLen=0, stitch=False):
+    def __init__(self, fig, BaseFilename, title = '', xLen=0, zLen=0, stitch=True):
         self.BaseFilename = BaseFilename
         self.title = title
         self.fig = fig
