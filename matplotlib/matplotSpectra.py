@@ -14,13 +14,19 @@ class matplotSpectra():
         self.title = title
 
         filenames = [("%s-%sV.dpt" % (self.BaseFilename, cur), cur) for cur in self.currents]
-        self.rawData = [(np.loadtxt(fname, delimiter=","), cur) for fname, cur in filenames]
+        try: self.rawData = [(np.loadtxt(fname, delimiter=","), cur) for fname, cur in filenames]
+        except ValueError:
+            self.rawData = [(np.loadtxt(fname, delimiter="\t"), cur) for fname, cur in filenames]
         self.colors = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#e6ab02', '#a6761d', '#666666', '#666666', '#666666', '#666666']
 
 
-    def plot(self):
+    def plot(self, fig=None):
         
-        self.fig = plt.figure()
+        if fig:
+            self.fig = fig
+        else:
+            self.fig = plt.figure()
+
         self.ax1 = self.fig.add_subplot(111)
         ax1 = self.ax1
         ax1.tick_params(axis="x", top="off")
