@@ -65,13 +65,13 @@ class matplotSpectra():
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         self.fig.subplots_adjust(top=0.86)
 
-    def addLabels(self, xPosition):
+    def addLabels(self, xPosition, offset=0.25):
         ln = self.ax1.get_lines()
         for i, line in enumerate(ln):
             data = line.get_data()
             idx = (np.abs(data[0]-xPosition)).argmin()
             yVal = data[1][idx]
-            self.ax1.text(xPosition, yVal-0.25, '%sV' % self.rawData[i][1], color=line.get_color())
+            self.ax1.text(xPosition, yVal-offset, '%sV' % self.rawData[i][1], color=line.get_color())
 
     def show(self):
         plt.savefig(self.BaseFilename + '.pdf')
