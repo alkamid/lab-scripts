@@ -7,11 +7,12 @@ import matplotlib.pyplot as plt
 
 class matplotSpectra():
 
-    def __init__(self, BaseFilename, currents, offsets, title=''):
+    def __init__(self, BaseFilename, currents, offsets, title='', inverse=None):
         self.BaseFilename = BaseFilename
         self.currents = currents
         self.offsets = offsets
         self.title = title
+        self.inverse = inverse
 
         filenames = [("%s-%sV.dpt" % (self.BaseFilename, cur), cur) for cur in self.currents]
         try: self.rawData = [(np.loadtxt(fname, delimiter=","), cur) for fname, cur in filenames]
@@ -37,11 +38,21 @@ class matplotSpectra():
         ax1.set_xlabel("frequency / THz")
         ax1.set_ylabel("intensity / arb. u.")
         ax3.set_xlabel(r"wavelength / $\mathrm{\mu m}$")
-
+        '''
         for i, (datafile, label) in enumerate(self.rawData):
             if i>0:
                 adjustedYData = datafile[:,1]-self.rawData[0][0][:,1]+sum(self.offsets[:i-1])
                 ax1.plot( datafile[:,0]*3e-2, adjustedYData, color=self.colors[i-1], label='%s' % label)
+        '''
+        for i, (datafile, label) in enumerate(self.rawData):
+            if self.inverse and self.inverse[i] == 1:
+                adjustedYData = datafile[:,1]*(-1)*self.inverse[i]
+            else:
+                adjustedYData = datafile[:,1]
+            adjustedYData = adjustedYData+sum(self.offsets[:i])
+
+            ax1.plot( datafile[:,0]*3e-2, adjustedYData, color=self.colors[i-1], label='%s' % label)
+
 
         ax1.margins(x=0)
 
@@ -60,7 +71,7 @@ class matplotSpectra():
             data = line.get_data()
             idx = (np.abs(data[0]-xPosition)).argmin()
             yVal = data[1][idx]
-            self.ax1.text(xPosition, yVal-0.65, '%sV' % self.rawData[i+1][1], color=line.get_color())
+            self.ax1.text(xPosition, yVal-0.25, '%sV' % self.rawData[i][1], color=line.get_color())
 
     def show(self):
         plt.savefig(self.BaseFilename + '.pdf')
