@@ -45,7 +45,7 @@ class matplotSpectra():
                 ax1.plot( datafile[:,0]*3e-2, adjustedYData, color=self.colors[i-1], label='%s' % label)
         '''
         for i, (datafile, label) in enumerate(self.rawData):
-            if self.inverse and self.inverse[i] == 1:
+            if self.inverse and len(self.inverse) >= i and self.inverse[i] == 1:
                 adjustedYData = datafile[:,1]*(-1)*self.inverse[i]
             else:
                 adjustedYData = datafile[:,1]
