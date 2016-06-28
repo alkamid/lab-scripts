@@ -45,22 +45,22 @@ class matplotFF():
 
         # fill in zeros if we are plotting a stiched far field
         if stitch == True:
-            self.x = np.ndarray((self.xLen,self.zLen))
-            self.z = np.ndarray((self.xLen,self.zLen))
-            self.signal = np.zeros((self.xLen,self.zLen))
+            self.x = np.ndarray((self.zLen,self.xLen))
+            self.z = np.ndarray((self.zLen,self.xLen))
+            self.signal = np.zeros((self.zLen,self.xLen))
             for iz, z in enumerate(sorted(z_unique_vals)):
                 for ix, x in enumerate(sorted(x_unique_vals)):
-                     self.x[ix][iz] = x
-                     self.z[ix][iz] = z
+                     self.x[iz][ix] = x
+                     self.z[iz][ix] = z
                      for i in zip(self.xRaw, self.zRaw, self.sigRaw):
                          if (abs(i[0]-x) < stage_tolerance) and (abs(i[1]-z) < stage_tolerance):
-                             self.signal[ix][iz] = i[2]
+                             self.signal[iz][ix] = i[2]
                              break
 
         else:
-            self.x = self.xRaw.reshape((self.xLen,self.zLen))
-            self.z = self.zRaw.reshape((self.xLen,self.zLen))
-            self.signal = self.sigRaw.reshape((self.xLen,self.zLen))
+            self.x = self.xRaw.reshape((self.zLen,self.xLen))
+            self.z = self.zRaw.reshape((self.zLen,self.xLen))
+            self.signal = self.sigRaw.reshape((self.zLen,self.xLen))
 
         # normalise the signal to [0, 1]
         self.signal -= np.min(self.signal)
@@ -90,13 +90,14 @@ class matplotFF():
         Args:
             distance: distance of the detector in mm (for conversion into theta)
             phaseShift: angle in radians. Sometimes we want to shift the farfield by pi to get the plot on the other side of the polar coordinate system
+            angleData: if True, it means that the data were collected with a rotation stage and therefore do not have to be converted into angle
         """
 
         if mean:
-            intens = [np.mean(row) for row in self.signal]
+            intens = np.mean(self.signal, axis=0)
         else:
             intens = self.signal[-5]
-            intens = np.mean(self.signal,axis=0)
+            intens = np.mean(self.signal)
         
             
         if angleData:
@@ -133,7 +134,7 @@ class matplotFF():
     def plotInterpolate(self, xPoints, zPoints, rotate=False, origin='lower'):
 
         self.ax1 = self.fig.add_subplot(111)
-        self.ax1.set_xlabel("X / mm")
+        self.ax1.set_xlabel(r"$\theta$ / degrees")
         self.ax1.set_ylabel("Z / mm")
 
         xi, zi = np.linspace(self.x.min(), self.x.max(), xPoints), np.linspace(self.z.min(), self.z.max(), zPoints)
@@ -159,5 +160,5 @@ class matplotFF():
 
     def show(self):
         plt.savefig(self.BaseFilename + '.pdf')
-        plt.savefig(self.BaseFilename + '.png')
+        plt.savefig(self.BaseFilename + '.png', transparent=True)
         plt.show()
