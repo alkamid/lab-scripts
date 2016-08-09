@@ -18,6 +18,7 @@ def generate_filenames(ctlfname, k=1, band=1, pol='tm'):
     return file_Ez, file_Hx, file_Hy
                 
 def plot_mode(file1, file2, file3, ctlfname, title='', aspect='auto', plot_vectors=False):#{{{
+    plt.clf()
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
@@ -48,7 +49,6 @@ def plot_mode(file1, file2, file3, ctlfname, title='', aspect='auto', plot_vecto
         ax.quiver(xgrid, ygrid, Hy_data, Hx_data, pivot='middle', headwidth=3, headlength=6, label='')
     if title: plt.title(title)
 
-    #plt.axes().set_aspect('equal')
     ax.set_aspect(aspect)
     ax.xaxis.set_major_locator(plt.NullLocator())
     ax.yaxis.set_major_locator(plt.NullLocator())
@@ -58,12 +58,12 @@ def plot_mode(file1, file2, file3, ctlfname, title='', aspect='auto', plot_vecto
 
 def plot_bands(filename):
 
-    band = np.loadtxt(filename, usecols=[1], unpack=True, delimiter=',', skiprows=1) 
-    Kx_allbands = np.loadtxt(filename, usecols=[2], unpack=True, delimiter=',', skiprows=1)
+    #band = np.loadtxt(filename, usecols=[1], unpack=True, delimiter=',', skiprows=1) 
+    #Kx_allbands = np.loadtxt(filename, usecols=[2], unpack=True, delimiter=',', skiprows=1)
     with open(filename) as f:
         colcount = len(f.readlines()[0].split(','))
 
-    freqs_allbands = np.loadtxt(filename, usecols=range(6,colcount-1), unpack=True, delimiter=',', skiprows=1)
+    freqs_allbands = np.loadtxt(filename, usecols=range(6,colcount), unpack=True, delimiter=',', skiprows=1)
 
 
     fig = plt.figure()
@@ -76,8 +76,8 @@ def plot_bands(filename):
     for i in range(len(freqs_allbands)):
         ax.plot(freqs_allbands[i], lw=2)
 
-    ax.set_ylim(top=0.6)
-
+    
+    fig.savefig(filename + '.png', transparent=True)
     plt.show()
 
 def plot_allmodes(ctlfname, k=1, numbands=5, aspect='auto'):
@@ -85,8 +85,3 @@ def plot_allmodes(ctlfname, k=1, numbands=5, aspect='auto'):
     for b in range(1,numbands+1):
         fnames = generate_filenames(ctlfname=ctlfname, k=k, band=b)
         plot_mode(*fnames, ctlfname=ctlfname, aspect=aspect)
-
-#read_bands_from_output('tri-nodefect.out')
-
-
-#plot_bands('tri-nodefect.out-TM.dat')
