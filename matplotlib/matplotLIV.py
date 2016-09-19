@@ -68,15 +68,20 @@ class matplotLIV():
         ax1.set_ylabel("voltage / V")
         ax3.set_xlabel(r'current density / $\mathregular{Acm^{-2}}$')
         ax3.xaxis.set_label_position('bottom')
-
+        
         try: self.sens == None
         except AttributeError:
             ax2.set_ylabel("light intensity / arb. u.")
         else:
-            ax2.set_ylabel(r'peak output power / $\mathregular{\mu W}$')
+            if np.max(np.hstack([a[:,2] for a,t in self.rawData])) > 1000:
+                prefix = r'm'
+                for datafile, temp in self.rawData:
+                    datafile[:,2]*=0.001
+            else:
+                prefix = r'\mu'
+            ax2.set_ylabel(r'peak output power / $\mathregular{' + prefix + r' W}$')
         
 
-        
         lns = []
         for i, (datafile, label) in enumerate(self.rawData):
             self.checkMaxValues(datafile)
@@ -132,6 +137,6 @@ class matplotLIV():
             self.ax3.set_xlim(right=right/self.area)
 
     def show(self):
-        plt.savefig(self.BaseFilename + '.pdf')
+        plt.savefig(self.BaseFilename + '.svg')
         plt.savefig(self.BaseFilename + '.png', dpi=150)
         plt.show()
