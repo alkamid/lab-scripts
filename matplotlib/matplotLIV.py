@@ -7,7 +7,7 @@ import matplotlib.ticker as plticker
 class matplotLIV():
 
     def __init__(self, BaseFilename, temperatures, fig=None, length=None,
-                 width=None, area=None, title = None, ylim=None,
+                 width=None, area=1*250*1e-5, title = None, ylim=None,
                  sensitivity=None, dutycycle=None, detector='golay-tydex'):
 
         self.BaseFilename = BaseFilename
