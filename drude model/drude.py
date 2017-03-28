@@ -1,7 +1,8 @@
-import math
+import numpy as np
 import pylab
+from decimal import Decimal
 
-'''
+"""
 This script calculates a few optical properties, namely:
 - plasmon frequency
 - complex relative permittivity
@@ -14,37 +15,42 @@ With plasmaVsDopingPlot() you can plot plasma frequency and DC conductivity vs. 
 
 ak763@cam.ac.uk 
 
-'''
+"""
 
 #constants:
 e = 1.6e-19 # elementary charge in Coulombs
 eps_0 = 8.85e-12 # vacuum permittivity in farads/meter
 e_mass = 9.1e-31 # electron mass in kg
+c = 3e8 # speed of light
+
+class RealEpsPositive(Exception):
+    pass
 
 class Material:
+    
     def __init__(self, name=None, mass=None, eps=None, tau=None):
+        self.material_db = {}
+        self.material_db['GaAs'] = {'mass': 0.067, 'eps': 12.96, 'tau': 0.1e-12}
+        self.material_db['GaAs_AR'] = {'mass': 0.067, 'eps': 12.96, 'tau': 0.5e-12}
+        self.material_db['Au'] = {'mass': 1, 'eps': 1, 'tau': 0.6e-13}
+
+
         if name == None:
+            print('Material not specified, using GaAs as the default')
             name = 'GaAs'
 
-        if name == 'GaAs':
-            self.name = 'GaAs'
-
-            if mass == None:
-                self.mass = 0.067
+        try: self.mass = self.material_db[name]['mass']
+        except KeyError:
+            if mass is None or eps is None or tau is None:
+                raise MaterialNotInDatabase("Material not found in the database. You can enter a custom material by calling Material(name,eff_mass, epsilon)")
             else:
                 self.mass = mass
-
-            if eps == None:
-                self.eps = 13.3
-            else:
                 self.eps = eps
-
-            if tau == None:
-                self.tau = 1e-13
-            else:
                 self.tau = tau
         else:
-            raise MaterialNotInDatabase("Material not found in the database. You can enter a custom material by calling Material(name,eff_mass, epsilon)")
+            self.eps = self.material_db[name]['eps']
+            self.tau = self.material_db[name]['tau']
+            
     def getMass(self):
         return self.mass
     def getEps(self):
@@ -60,7 +66,7 @@ def plasmaFrequency(doping, material=Material('GaAs')):
     doping = doping*1e6 # convert to m^-3
     
     if doping > 1e30:
-        print "WARNING: The doping is very high (%s m^-3 = %s cm^-3). Are you sure you entered it in cm^-3?" % (round(doping), round(doping/1e6)) 
+        print("WARNING: The doping is very high (%s m^-3 = %s cm^-3). Are you sure you entered it in cm^-3?" % (round(doping), round(doping/1e6)))
     omega = ((float(doping)*e**2)/(material.getEps()*eps_0*e_mass*material.getMass()))**(0.5)
 
     return omega
@@ -71,10 +77,10 @@ def epsilon(doping, material=Material('GaAs'), frequency=None):
     # calculate the real and imaginary part of the relative permittivity
 
     if frequency == None:
-        print "Frequency not specified, using 2.9THz as default"
+        print("Frequency not specified, using 2.9THz as default")
         frequency = 2.9e12
         
-    omega = 2*math.pi*frequency
+    omega = 2*np.pi*frequency
     eReal = material.getEps()*(1-(plasmaFrequency(doping, material)**2 * material.getTau()**2)/(1+omega**2 * material.getTau()**2))
     eImag = (material.getEps()*plasmaFrequency(doping, material)**2 * material.getTau())/(omega*(1+omega**2 * material.getTau()**2))
     
@@ -93,12 +99,36 @@ def AC_conductivity(doping, material=Material('GaAs'), frequency=None):
     # calculate the AC conductivity (used in the simulation of the optical mode)
 
     if frequency == None:
-        print "Frequency not specified, using 2.9THz as default"
+        print("Frequency not specified, using 2.9THz as default")
         frequency = 2.9e12
 
     im_eps = epsilon(doping, material, frequency)['imag']
-    sigma = im_eps*eps_0*2*math.pi*frequency
+    sigma = im_eps*eps_0*2*np.pi*frequency
     return sigma
+
+# absorption coefficient, take from Fox's 2007 print (1st edition), eq. (1.23) for kappa and (1.16) for alpha
+def absorption(doping=None, e1 = None, e2 = None, freq = 2.9e12, material = Material('GaAs')):
+    if not (e1 or e2):
+        eps = epsilon(doping, material)
+        e1 = eps['real']
+        e2 = eps['imag']
+
+    if e1 > 0:
+        raise RealEpsPositive("The real part of the dielectric constant is positive, so kappa is complex")
+    else:
+        kappa = 1/np.sqrt(2)*np.sqrt(-e1+np.sqrt(e1**2+e2**2))
+
+    alpha = 2*2*np.pi*freq*kappa/c
+    return alpha
+
+# p. 147 in Fox, eq (7.20)
+def skinDepth(doping = None, e1 = None, e2 = None, freq = 2.9e12, material = Material('GaAs')):
+    if not (e1 or e2):
+        delta = 2/absorption(doping = doping, freq = freq, material = material)
+    else:
+        delta = 2/absorption(e1 = e1, e2 = e2, freq = freq)
+    return delta
+
 
 def QCLPropertiesTable(freq = 2.9e12, AR = None, Plasmon1 = None, Plasmon2 = None):
     regions = locals()
@@ -109,19 +139,19 @@ def QCLPropertiesTable(freq = 2.9e12, AR = None, Plasmon1 = None, Plasmon2 = Non
         if region != 'freq' and regions[region]:
             propertyList.append([])
             propertyList[i].append(region)
-            propertyList[i].append(regions[region])
+            propertyList[i].append('{0:.2E}'.format(Decimal(regions[region])))
             eps = epsilon(regions[region], frequency=freq)
-            propertyList[i].extend(['%.2f' % eps['real'], '%.2f' % eps['imag']])
-            #propertyList[i].append('%.2f' % conductivity(regions[region]))
+            propertyList[i].extend(['{0:.2f}'.format(eps['real']), '%.2f' % eps['imag']])
+            #propertyList[i].append('%.2f' % DC_conductivity(regions[region]))
             propertyList[i].append('%.2f' % AC_conductivity(regions[region], frequency = 2.9e12))
-            propertyList[i].append('%.2f' % (plasmaFrequency(regions[region])/(2*math.pi*1e12)) )
+            propertyList[i].append('%.2f' % (plasmaFrequency(regions[region])/(2*np.pi*1e12)) )
             i += 1
     row_format ="{:>15}" * (len(headings) + 1)
-    print row_format.format("", *headings)
+    print(row_format.format("", *headings))
     for row in propertyList:
-        print row_format.format(*row)
+        print(row_format.format(*row))
 
-def PlasmaVsDopingPlot(dopingStart = 1e16, dopingStop = 1e18):
+def PlasmaVsDopingPlot(dopingStart = 1e16, dopingStop = 3e17):
     data = [[], [], []]
 
     numPoints = 1000
@@ -131,8 +161,8 @@ def PlasmaVsDopingPlot(dopingStart = 1e16, dopingStop = 1e18):
     
     for i in range(numPoints):
         currentDoping = dopingStart + i*deltaDoping
-        plasma = plasmaFrequency(currentDoping)/(2*math.pi)
-        sigma = AC_conductivity(currentDoping, frequency = 2.9e12)
+        plasma = plasmaFrequency(currentDoping)/(2*np.pi)
+        sigma = DC_conductivity(currentDoping)
         data[0].append(currentDoping)
         outputText += '%f' % currentDoping
         data[1].append(plasma)
@@ -147,16 +177,27 @@ def PlasmaVsDopingPlot(dopingStart = 1e16, dopingStop = 1e18):
     fig = pylab.figure()
     pylab.xlabel("doping / cm^-3")
     ax1 = fig.add_subplot(111)
-    freq = ax1.plot(data[0], data[1], 'r')
-    pylab.ylabel("Plasma frequency / THz")
+    ax1.yaxis.tick_left()
+
+    ax1.grid(True)
+    
+    freq = ax1.plot(data[0], data[1])
+    pylab.ylabel("Plasma frequency / Hz")
     ax2 = fig.add_subplot(111, sharex=ax1, frameon=False)
     ax2.yaxis.tick_right()
     ax2.yaxis.set_label_position("right")
     pylab.ylabel("Conductivity / S/m")
-    cond = ax2.plot(data[0], data[2], 'b')
-    
+    next(ax2 ._get_lines.prop_cycler)['color']
+    cond = ax2.plot(data[0], data[2])
+
+    pylab.tight_layout()
+    pylab.savefig('plasma_and_conductivity.pdf')
     pylab.show()
 
 
-QCLPropertiesTable(freq = 2.7e12, AR = 2.6e15, Plasmon1 = 1e18, Plasmon2 = 5e18)
-PlasmaVsDopingPlot()
+#print skinDepth(1e18)
+
+# 5.61e15 - Amanti
+    
+QCLPropertiesTable(freq = 2.9e12, AR = 2.9e15, Plasmon1 = 5e18, Plasmon2 = 5.9e22)
+#PlasmaVsDopingPlot()
