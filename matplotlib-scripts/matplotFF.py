@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib
-matplotlib.use('Qt4Agg')
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import scipy.interpolate
 import viridis
@@ -131,9 +131,30 @@ class matplotFF():
         
         return self.fig
 
-    def plotInterpolate(self, xPoints, zPoints, rotate=False, origin='lower'):
+    def crosssection_plot(self, axis=0, subplot=None):
+        cs = np.mean(self.signal, axis=axis)
+        cs /= np.max(cs)
 
-        self.ax1 = self.fig.add_subplot(111)
+        self.ax_cutline[axis] = self.fig.add_subplot(subplot)
+        ax = self.ax_cutline[axis]
+
+        if axis == 0:
+            ax.plot(self.x[0,:], cs)
+            ax.set_aspect(50)
+        elif axis == 1:
+            ax.plot(cs, self.z[:,0])
+            ax.set_xlim([1.05,0])
+            ax.set_aspect(0.15)
+        
+
+    def plotInterpolate(self, xPoints, zPoints, rotate=False, origin='lower', cutlines=False):
+
+
+        if cutlines == False:
+            self.ax1 = self.fig.add_subplot(111)
+        else:
+            self.ax1 = self.fig.add_subplot(224)
+            self.ax_cutline = [None, None]
         self.ax1.set_xlabel(r"$\theta$ / degrees")
         self.ax1.set_ylabel("Z / mm")
 
@@ -154,11 +175,15 @@ class matplotFF():
 
         plt.imshow(sigi, extent=[self.x.min(), self.x.max(), self.z.min(), self.z.max()], origin=origin, cmap=viri, aspect='auto')
 
+        self.crosssection_plot(axis=0, subplot=222)
+        self.crosssection_plot(axis=1, subplot=223)
+
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         self.fig.subplots_adjust(top=0.86)
         self.ax1.tick_params(labelright=True, labeltop=True)
 
     def show(self):
         plt.savefig(self.BaseFilename + '.pdf')
+        plt.savefig(self.BaseFilename + '.svg')
         plt.savefig(self.BaseFilename + '.png', transparent=True)
         plt.show()
