@@ -14,7 +14,10 @@ class ModePlot:
         self.fname_2d = fname_2d
         self.data_1d = np.loadtxt(self.fname_1d, skiprows=8, delimiter=',')
         self.img2d = mpimg.imread(self.fname_2d)
-        self.fig = fig
+        if fig is None:
+            self.fig = plt.figure()
+        else:
+            self.fig = fig
         if um is True:
             self.data_1d[:, 0] *= 1e6
         self.zero = 0

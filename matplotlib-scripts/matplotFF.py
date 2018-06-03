@@ -3,15 +3,20 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import scipy.interpolate
-import viridis
+from PIL import Image
 
 class matplotFF():
     """A class for plotting far-field measurements of lasers. It requires
     the 'x z signal' format, but supports stitched measurements — the data
     can be simply added at the end of a file    
     """
-    def __init__(self, fig, BaseFilename, title = '', xLen=0, zLen=0, stitch=True):
+    def __init__(self, fig, BaseFilename, title = '', xLen=0, zLen=0, stitch=True, distance=None, angular_direction=None,
+                 output_filename=None):
         self.BaseFilename = BaseFilename
+        if output_filename is None:
+            self.output_filename = BaseFilename
+        else:
+            self.output_filename = output_filename
         self.title = title
         self.fig = fig
         
@@ -19,7 +24,15 @@ class matplotFF():
         self.zRaw = self.rawData[:,0]
         self.xRaw = self.rawData[:,1]
         self.sigRaw = self.rawData[:,2]
-        
+
+        self.distance = distance
+        self.angular_direction = angular_direction
+        if distance is not None:
+            if angular_direction == 'x':
+                self.xRaw = 180/(2*np.pi)*np.arctan(self.xRaw/distance)
+            elif angular_direction == 'z':
+                self.zRaw = 180/(2*np.pi)*np.arctan(self.zRaw/distance)
+
         # figure out the number of steps for Z and X
         stage_tolerance = 0.05  # stages don't always move to the same
                                 # place, so numerical positions might differ slightly
@@ -43,19 +56,19 @@ class matplotFF():
             self.xLen = xLen
             self.zLen = zLen
 
-        # fill in zeros if we are plotting a stiched far field
-        if stitch == True:
+        # fill in zeros if we are plotting a stitched far field
+        if stitch:
             self.x = np.ndarray((self.zLen,self.xLen))
             self.z = np.ndarray((self.zLen,self.xLen))
-            self.signal = np.zeros((self.zLen,self.xLen))
+            self.signal = np.zeros((self.zLen, self.xLen))
             for iz, z in enumerate(sorted(z_unique_vals)):
                 for ix, x in enumerate(sorted(x_unique_vals)):
-                     self.x[iz][ix] = x
-                     self.z[iz][ix] = z
-                     for i in zip(self.xRaw, self.zRaw, self.sigRaw):
-                         if (abs(i[0]-x) < stage_tolerance) and (abs(i[1]-z) < stage_tolerance):
-                             self.signal[iz][ix] = i[2]
-                             break
+                    self.x[iz][ix] = x
+                    self.z[iz][ix] = z
+                    for i in zip(self.xRaw, self.zRaw, self.sigRaw):
+                        if (abs(i[0]-x) < stage_tolerance) and (abs(i[1]-z) < stage_tolerance):
+                            self.signal[iz][ix] = i[2]
+                            break
 
         else:
             self.x = self.xRaw.reshape((self.zLen,self.xLen))
@@ -74,7 +87,6 @@ class matplotFF():
         # normalise the signal to [0, 1]
         self.signal -= np.min(self.signal)
         self.signal /= np.max(self.signal)
-
         
     def plotLine(self):
         '''plots the cross section of far-field (averaged all points at a set z position)'''
@@ -98,16 +110,15 @@ class matplotFF():
         else:
             intens = self.signal[-5]
             intens = np.mean(self.signal)
-        
-            
+
         if angleData:
             theta = self.x[0]*np.pi/180
         else:
             theta = [np.arctan(z[0]/distance)+phaseShift for z in self.z]
             
         # normalize values to [0,1]
-        intens-= np.min(intens)
-        intens/= np.max(intens)
+        intens -= np.min(intens)
+        intens /= np.max(intens)
 
         self.ax1 = self.fig.add_subplot(111, polar=True)
 
@@ -116,14 +127,11 @@ class matplotFF():
         self.ax1.get_yaxis().set_visible(False)
         
     def plot(self, rotate=False):
- 
-
         self.ax1 = self.fig.add_subplot(111)
         self.ax1.margins(x=0)
         self.ax1.set_xlim(self.x.min(), self.x.max())
-        
-        viri = viridis.get_viridis()
-        plt.pcolormesh(self.x,self.z,self.signal, cmap=viri, edgecolors='face')
+
+        plt.pcolormesh(self.x,self.z,self.signal, edgecolors='face')
 
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         self.fig.subplots_adjust(top=0.86)
@@ -138,25 +146,53 @@ class matplotFF():
         self.ax_cutline[axis] = self.fig.add_subplot(subplot)
         ax = self.ax_cutline[axis]
 
+        xlim = self.ax1.get_xlim()
+        ylim = self.ax1.get_ylim()
+        ratio = abs(xlim[1]-xlim[0])/abs(ylim[1]-ylim[0])
+
         if axis == 0:
-            ax.plot(self.x[0,:], cs)
-            ax.set_aspect(50)
+            ax.plot(self.x[0, :], cs)
+            ax.set_aspect(ratio*7)
+            ax.set_xlim(xlim)
+            ax.set_ylim([0, 1.05])
+            ax.xaxis.set_label_position('top')
+            ax.xaxis.set_ticks_position('top')
+
+            ax.set_xlabel(r"$\theta$ / degrees")
+            ax.set_ylabel("intensity / arb. u.", fontsize=7)
+            self.ax1.xaxis.label.set_visible(False)
         elif axis == 1:
-            ax.plot(cs, self.z[:,0])
-            ax.set_xlim([1.05,0])
-            ax.set_aspect(0.15)
-        
+            ax.plot(cs, self.z[:, 0])
+            ax.set_xlim([1.05, 0])
+            ax.set_ylim(ylim)
+            ax.set_aspect(ratio/7)
+            if self.distance is not None and self.angular_direction == 'z':
+                ax.set_ylabel("$\phi$ / degrees")
+            else:
+                ax.set_ylabel("Z / mm")
+
+            ax.set_xlabel("intensity / arb. u.", fontsize=7)
+
+            self.ax1.yaxis.label.set_visible(False)
+        #self.gs1.update(wspace=0.025, hspace=0.05) # set the spacing between axes. 
 
     def plotInterpolate(self, xPoints, zPoints, rotate=False, origin='lower', cutlines=False):
-
-
-        if cutlines == False:
+        if not cutlines:
             self.ax1 = self.fig.add_subplot(111)
         else:
+            #self.gs1 = gridspec.GridSpec(2, 2)
+            #self.gs1.update(wspace=0.025, hspace=0.05) # set the spacing between axes. 
+
             self.ax1 = self.fig.add_subplot(224)
             self.ax_cutline = [None, None]
+
+            self.ax1.tick_params(labelright=True, labelbottom=True, labelleft=False, bottom=True, right=True, left=False)
+
         self.ax1.set_xlabel(r"$\theta$ / degrees")
-        self.ax1.set_ylabel("Z / mm")
+        if self.distance is not None and self.angular_direction == 'z':
+            self.ax1.set_ylabel("$\phi$ / degrees")
+        else:
+            self.ax2.set_ylabel("Z / mm")
 
         xi, zi = np.linspace(self.x.min(), self.x.max(), xPoints), np.linspace(self.z.min(), self.z.max(), zPoints)
         xi, zi = np.meshgrid(xi, zi)
@@ -171,19 +207,26 @@ class matplotFF():
         if rotate:
             sigi = np.rot90(sigi)
 
-        viri = viridis.get_viridis()
-
-        plt.imshow(sigi, extent=[self.x.min(), self.x.max(), self.z.min(), self.z.max()], origin=origin, cmap=viri, aspect='auto')
+        plt.imshow(sigi, extent=[self.x.min(), self.x.max(), self.z.min(), self.z.max()], origin=origin, aspect='auto')
 
         self.crosssection_plot(axis=0, subplot=222)
         self.crosssection_plot(axis=1, subplot=223)
 
-        self.fig.suptitle(self.title, y=0.98, weight='bold')
-        self.fig.subplots_adjust(top=0.86)
-        self.ax1.tick_params(labelright=True, labeltop=True)
+        #self.fig.suptitle(self.title, y=0.98, weight='bold')
+        #self.fig.subplots_adjust(top=0.12, left=0.7)
+        self.fig.subplots_adjust(hspace=-0.1, wspace=-0.2)
+        #self.ax1.tick_params(labelright=True, labeltop=True)
+
+    def insert_laser_orientation(self, orientation_image_path, x, y):
+        # https://stackoverflow.com/questions/3609585/how-to-insert-a-small-image-on-the-corner-of-a-plot-with-matplotlib
+        im = Image.open(orientation_image_path)
+        height = im.size[1]
+
+        im = np.array(im).astype(np.float) / 255
+        self.fig.figimage(im, x, self.fig.bbox.ymax - height - y)
 
     def show(self):
-        plt.savefig(self.BaseFilename + '.pdf')
-        plt.savefig(self.BaseFilename + '.svg')
-        plt.savefig(self.BaseFilename + '.png', transparent=True)
+        plt.savefig(self.output_filename + '.pdf')
+        plt.savefig(self.output_filename + '.svg')
+        plt.savefig(self.output_filename + '.png', transparent=True)
         plt.show()

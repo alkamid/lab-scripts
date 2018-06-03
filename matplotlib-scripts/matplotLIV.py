@@ -1,13 +1,18 @@
 import numpy as np
 import matplotlib
-matplotlib.use('Qt4Agg')
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
+
+matplotlib.rcParams['axes.labelsize'] = 18
+matplotlib.rcParams['xtick.labelsize'] = 14
+matplotlib.rcParams['ytick.labelsize'] = 14
+matplotlib.rcParams['legend.fontsize'] = 14
 
 class matplotLIV():
 
     def __init__(self, BaseFilename, temperatures, fig=None, length=None,
-                 width=None, area=1*250*1e-5, title = None, ylim=None,
+                 width=None, area=None, title = None, ylim=None,
                  sensitivity=None, dutycycle=None, detector='golay-tydex'):
 
         self.BaseFilename = BaseFilename
@@ -48,7 +53,7 @@ class matplotLIV():
             for datafile, temp in self.rawData:
                 datafile[:,2] *= power_scaling
         
-    def plot(self):
+    def plot(self, first_iv_only=False):
         
         if self.fig == None:
             self.fig = plt.figure()
@@ -85,8 +90,14 @@ class matplotLIV():
         lns = []
         for i, (datafile, label) in enumerate(self.rawData):
             self.checkMaxValues(datafile)
-            ax1.plot( datafile[:,0], datafile[:,1], color=self.colors[i%len(self.colors)], label='%sK' % str(label))
-            lns += ax2.plot( datafile[:,0], datafile[:,2], color=self.colors[i%len(self.colors)], label='%sK' % str(label), linewidth=2)
+            if i > 0:
+                if first_iv_only is True:
+                    pass
+                else:
+                    ax1.plot( datafile[:,0], datafile[:,1], label='%sK' % str(label))
+            else:
+                ax1.plot( datafile[:,0], datafile[:,1], label='%sK' % str(label))
+            lns += ax2.plot( datafile[:,0], datafile[:,2], label='%sK' % str(label), linewidth=2)
 
         # Define which lines to put in the legend. If you want l1 too, then use lns = l1+l2
         
@@ -103,7 +114,8 @@ class matplotLIV():
         if self.ylim:
             ax2.set_ylim(top=self.ylim)
 
-        ax3.set_xlim(start/self.area, end/self.area)
+        if self.area is not None:
+            ax3.set_xlim(start/self.area, end/self.area)
         
         if (self.title):
             self.fig.suptitle(self.title, y=0.98, weight='bold')
@@ -131,12 +143,15 @@ class matplotLIV():
     def set_x_limits(self, left=None, right=None):
         if left:
             self.ax1.set_xlim(left=left)
-            self.ax3.set_xlim(left=left/self.area)
+            if self.area is not None:
+                self.ax3.set_xlim(left=left/self.area)
         if right:
             self.ax1.set_xlim(right=right)
-            self.ax3.set_xlim(right=right/self.area)
+            if self.area is not None:
+                self.ax3.set_xlim(right=right/self.area)
 
     def show(self):
         plt.savefig(self.BaseFilename + '.svg')
         plt.savefig(self.BaseFilename + '.png', dpi=150)
+        plt.savefig(self.BaseFilename + '.pdf')
         plt.show()

@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import h5py
 
+
 def read_bands_from_output(filename):
     with open(filename, 'r') as f, open(filename + '-TE.dat', 'w') as g, open(filename + '-TM.dat', 'w') as h:
         for line in f:
@@ -11,12 +12,14 @@ def read_bands_from_output(filename):
             elif line.startswith('tefreq'):
                 g.write(line)
 
+
 def generate_filenames(ctlfname, k=1, band=1, pol='tm'):
     file_Ez = '{0}e.k{1:02d}.b{2:02d}.z.{3}.h5'.format(ctlfname, k, band, pol)
     file_Hx = '{0}h.k{1:02d}.b{2:02d}.x.{3}.h5'.format(ctlfname, k, band, pol)
     file_Hy = '{0}h.k{1:02d}.b{2:02d}.y.{3}.h5'.format(ctlfname, k, band, pol)
     return file_Ez, file_Hx, file_Hy
-                
+
+
 def plot_mode(file1, file2, file3, ctlfname, title='', aspect='auto', plot_vectors=False):#{{{
     plt.clf()
     fig = plt.figure()
@@ -79,6 +82,7 @@ def plot_bands(filename):
     
     fig.savefig(filename + '.png', transparent=True)
     plt.show()
+
 
 def plot_allmodes(ctlfname, k=1, numbands=5, aspect='auto'):
     

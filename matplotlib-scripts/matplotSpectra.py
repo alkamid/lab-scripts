@@ -18,6 +18,12 @@ class matplotSpectra():
         try: self.rawData = [(np.loadtxt(fname, delimiter=","), cur) for fname, cur in filenames]
         except ValueError:
             self.rawData = [(np.loadtxt(fname, delimiter="\t"), cur) for fname, cur in filenames]
+        except FileNotFoundError:
+            filenames = [("%s_%sV.dpt" % (self.BaseFilename, cur), cur) for cur in self.currents]
+            try: self.rawData = [(np.loadtxt(fname, delimiter=","), cur) for fname, cur in filenames]
+            except ValueError:
+                self.rawData = [(np.loadtxt(fname, delimiter="\t"), cur) for fname, cur in filenames]
+     
         self.colors = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#e6ab02', '#a6761d', '#666666', '#666666', '#666666', '#666666']
 
 
@@ -36,7 +42,7 @@ class matplotSpectra():
         ax3 = self.ax3
 
         ax1.set_xlabel("frequency / THz")
-        ax1.set_ylabel("intensity / arb. u.")
+        ax1.set_ylabel("light intensity / arb. u.")
         ax3.set_xlabel(r"wavelength / $\mathrm{\mu m}$")
         '''
         for i, (datafile, label) in enumerate(self.rawData):
@@ -51,7 +57,7 @@ class matplotSpectra():
                 adjustedYData = datafile[:,1]
             adjustedYData = adjustedYData+sum(self.offsets[:i])
 
-            ax1.plot( datafile[:,0]*3e-2, adjustedYData, color=self.colors[i-1], label='%s' % label)
+            ax1.plot( datafile[:,0]*3e-2, adjustedYData, lw=3, color=self.colors[i-1], label='%s' % label)
 
 
         ax1.margins(x=0)
@@ -75,4 +81,5 @@ class matplotSpectra():
 
     def show(self):
         plt.savefig(self.BaseFilename + '.pdf')
+        plt.savefig(self.BaseFilename + '.png', dpi=300, transparent=True)
         plt.show()
