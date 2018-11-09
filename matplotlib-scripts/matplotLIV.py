@@ -9,6 +9,7 @@ matplotlib.rcParams['xtick.labelsize'] = 14
 matplotlib.rcParams['ytick.labelsize'] = 14
 matplotlib.rcParams['legend.fontsize'] = 14
 
+
 class matplotLIV():
 
     def __init__(self, BaseFilename, temperatures, fig=None, length=None,
@@ -51,16 +52,25 @@ class matplotLIV():
             power_scaling = 1/10000*sensitivity*np.sqrt(2)/sens_table[detector]*(100/dutycycle)/0.45
 
             for datafile, temp in self.rawData:
-                datafile[:,2] *= power_scaling
+                datafile[:, 2] *= power_scaling
+
+    def magnify(self, factors):
+        assert len(factors) == len(self.rawData)
+        new_rawdata = []
+        for i, f in enumerate(factors):
+            new_array = self.rawData[i][0]
+            new_array[:, 2] *= f
+            new_rawdata.append((new_array, self.rawData[i][1]))
+        self.rawData = new_rawdata
         
     def plot(self, first_iv_only=False):
         
-        if self.fig == None:
-            self.fig = plt.figure()
+        if self.fig is None:
+            self.fig = plt.figure(constrained_layout=True)
 
         self.ax1 = self.fig.add_subplot(111)
         ax1 = self.ax1
-        ax1.tick_params(bottom='off')
+        ax1.tick_params(bottom=False)
         ax1.xaxis.tick_top()
         self.ax2 = ax1.twinx()
         ax2 = self.ax2
@@ -74,18 +84,26 @@ class matplotLIV():
         ax3.set_xlabel(r'current density / $\mathregular{Acm^{-2}}$')
         ax3.xaxis.set_label_position('bottom')
         
-        try: self.sens == None
+        try:
+            self.sens is None
         except AttributeError:
             ax2.set_ylabel("light intensity / arb. u.")
         else:
-            if np.max(np.hstack([a[:,2] for a,t in self.rawData])) > 1000:
+            if np.max(np.hstack([a[:, 2] for a,t in self.rawData])) > 1000:
                 prefix = r'm'
                 for datafile, temp in self.rawData:
-                    datafile[:,2]*=0.001
+                    datafile[:, 2] *= 0.001
             else:
                 prefix = r'\mu'
             ax2.set_ylabel(r'peak output power / $\mathregular{' + prefix + r' W}$')
-        
+
+        ax1.grid(True, axis='y', zorder=0)
+        ax3.grid(True)
+        ax3.set_zorder(0)
+        ax1.set_zorder(1)
+        ax2.set_zorder(1)
+        ax1.patch.set_visible(False)
+        ax2.patch.set_visible(False)
 
         lns = []
         for i, (datafile, label) in enumerate(self.rawData):
@@ -94,20 +112,16 @@ class matplotLIV():
                 if first_iv_only is True:
                     pass
                 else:
-                    ax1.plot( datafile[:,0], datafile[:,1], label='%sK' % str(label))
+                    ax1.plot( datafile[:,0], datafile[:, 1], label='%sK' % str(label), zorder=1)
             else:
-                ax1.plot( datafile[:,0], datafile[:,1], label='%sK' % str(label))
-            lns += ax2.plot( datafile[:,0], datafile[:,2], label='%sK' % str(label), linewidth=2)
+                ax1.plot( datafile[:, 0], datafile[:, 1], label='%sK' % str(label), zorder=1)
+            lns += ax2.plot( datafile[:, 0], datafile[:, 2], label='%sK' % str(label), linewidth=2, zorder=1)
 
         # Define which lines to put in the legend. If you want l1 too, then use lns = l1+l2
         
         labs = [l.get_label() for l in lns]
 
         ax1.margins(x=0)
-
-        ax1.grid(True, axis='y')
-        ax3.grid(True)
-
         start, end = ax1.get_xlim()
 
         self.setAxesScale(ax1, ax2)
@@ -117,16 +131,23 @@ class matplotLIV():
         if self.area is not None:
             ax3.set_xlim(start/self.area, end/self.area)
         
-        if (self.title):
+        if self.title:
             self.fig.suptitle(self.title, y=0.98, weight='bold')
             self.fig.subplots_adjust(top=0.86)
 
-        self.leg = ax3.legend(lns,labs,loc='upper left')
+        self.leg = ax2.legend(lns,labs,loc='upper left')
 
-    def changeTicks(self, base):
-        '''if the ticks on the bottom X axis (current density) are too sparse/dense, you can set the distance manually'''
+    def changeTicks(self, base) -> None:
+        """
+        If the ticks on the bottom X axis (current density) are too sparse/dense, you can set the distance manually.
+        Args:
+            base:
 
-        loc = plticker.MultipleLocator(base) # this locator puts ticks at regular intervals
+        Returns:
+
+        """
+
+        loc = plticker.MultipleLocator(base)  # this locator puts ticks at regular intervals
         self.ax3.xaxis.set_major_locator(loc)
 
     def checkMaxValues(self, data):
@@ -136,9 +157,9 @@ class matplotLIV():
 
     def setAxesScale(self, ax1, ax2):
         yrange = ax1.get_ylim()
-        y1Fraction = self.maxValueRow[1]/yrange[1]
-        y2Fraction = y1Fraction - 0.02
-        ax2.set_ylim(top=self.maxValueRow[2]/y2Fraction)
+        y1_fraction = self.maxValueRow[1]/yrange[1]
+        y2_fraction = y1_fraction - 0.02
+        ax2.set_ylim(top=self.maxValueRow[2]/y2_fraction)
 
     def set_x_limits(self, left=None, right=None):
         if left:

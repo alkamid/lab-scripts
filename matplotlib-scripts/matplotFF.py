@@ -1,16 +1,17 @@
 import numpy as np
 import matplotlib
-matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import scipy.interpolate
 from PIL import Image
+matplotlib.use('Qt5Agg')
+
 
 class matplotFF():
     """A class for plotting far-field measurements of lasers. It requires
     the 'x z signal' format, but supports stitched measurements — the data
     can be simply added at the end of a file    
     """
-    def __init__(self, fig, BaseFilename, title = '', xLen=0, zLen=0, stitch=True, distance=None, angular_direction=None,
+    def __init__(self, fig, BaseFilename, title='', xLen=0, zLen=0, stitch=True, distance=None, angular_direction=None,
                  output_filename=None):
         self.BaseFilename = BaseFilename
         if output_filename is None:
@@ -24,6 +25,12 @@ class matplotFF():
         self.zRaw = self.rawData[:,0]
         self.xRaw = self.rawData[:,1]
         self.sigRaw = self.rawData[:,2]
+
+        self.xlim = (None, None)
+        self.zlim = (None, None)
+        z_pixdim = (self.zRaw.max() - self.zRaw.min()) / len(self.zRaw)
+        x_pixdim = (self.xRaw.max() - self.xRaw.min()) / len(self.xRaw)
+        self.pixdim = (x_pixdim, z_pixdim)
 
         self.distance = distance
         self.angular_direction = angular_direction
@@ -192,7 +199,7 @@ class matplotFF():
         if self.distance is not None and self.angular_direction == 'z':
             self.ax1.set_ylabel("$\phi$ / degrees")
         else:
-            self.ax2.set_ylabel("Z / mm")
+            self.ax1.set_ylabel("Z / mm")
 
         xi, zi = np.linspace(self.x.min(), self.x.max(), xPoints), np.linspace(self.z.min(), self.z.max(), zPoints)
         xi, zi = np.meshgrid(xi, zi)
@@ -207,14 +214,21 @@ class matplotFF():
         if rotate:
             sigi = np.rot90(sigi)
 
-        plt.imshow(sigi, extent=[self.x.min(), self.x.max(), self.z.min(), self.z.max()], origin=origin, aspect='auto')
+        sigi[-1, -1] = 0
 
-        self.crosssection_plot(axis=0, subplot=222)
-        self.crosssection_plot(axis=1, subplot=223)
+        pltmesh = plt.imshow(sigi, extent=[self.x.min(), self.x.max(), self.z.min(), self.z.max()], origin=origin,
+                             aspect='auto')
+        self.ax1.set_facecolor(pltmesh.cmap(0.0))
+        cb = self.fig.colorbar(pltmesh, ticks=[0, 1])
+        cb.set_label('light intensity / arb. u.')
 
+        if cutlines:
+            self.crosssection_plot(axis=0, subplot=222)
+            self.crosssection_plot(axis=1, subplot=223)
+            self.fig.subplots_adjust(hspace=-0.1, wspace=-0.2)
         #self.fig.suptitle(self.title, y=0.98, weight='bold')
         #self.fig.subplots_adjust(top=0.12, left=0.7)
-        self.fig.subplots_adjust(hspace=-0.1, wspace=-0.2)
+
         #self.ax1.tick_params(labelright=True, labeltop=True)
 
     def insert_laser_orientation(self, orientation_image_path, x, y):
