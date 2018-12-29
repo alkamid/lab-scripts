@@ -1,4 +1,5 @@
 import csv
+from pathlib import Path
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -23,6 +24,10 @@ class matplotSpectra():
 
         if pisa_format:
             filenames = [(f'{self.BaseFilename}-{cur}mV.csv', cur) for cur in self.currents]
+            if Path(filenames[0][0]).exists():
+                pass
+            else:
+                filenames = [(f'{self.BaseFilename}-{cur}mV.txt', cur) for cur in self.currents]
             self.rawData = []
             for fname, cur in filenames:
                 with open(fname) as f:
@@ -95,18 +100,24 @@ class matplotSpectra():
 
         start, end = ax1.get_xlim()
         factor = 3e8/1e12*1e6
-        ax3.set_xlim(factor/start, factor/end)
+        if abs(start) < 1:
+            top_axis_start = 0
+        else:
+            top_axis_start = factor/start
+
+        ax3.set_xlim(top_axis_start, factor/end)
 
         self.fig.suptitle(self.title, y=0.98, weight='bold')
         # self.fig.subplots_adjust(top=0.86)
 
-    def addLabels(self, xPosition, offset=0.25):
+    def addLabels(self, xPosition, offset=0.25, current=False):
         ln = self.ax1.get_lines()
         for i, line in enumerate(ln):
             data = line.get_data()
             idx = (np.abs(data[0]-xPosition)).argmin()
             yVal = data[1][idx]
-            self.ax1.text(xPosition, yVal-offset, '%sV' % self.rawData[i][1], color=line.get_color())
+            text = self.rawData[i][1] + ('A' if current else 'V')
+            self.ax1.text(xPosition, yVal-offset, text, color=line.get_color())
 
     def show(self):
         plt.savefig(self.BaseFilename + '.pdf')
